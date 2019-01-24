@@ -1,0 +1,42 @@
+version: '2'
+
+volumes:
+  grafana-data:
+
+services:
+  agent:
+    image: buildkite/agent
+    environment:
+    - BUILDKITE_AGENT_TOKEN=${BUILDKITE_TOKEN}
+
+  metrics:
+    image: myobplatform/buildkite-metrics
+    # tty: true
+    # entrypoint: sh
+    environment:
+    - BUILDKITE_AGENT_TOKEN=${BUILDKITE_TOKEN}
+    entrypoint: sh -c '/bin/buildkite-metrics -token $${BUILDKITE_AGENT_TOKEN} -backend prometheus -interval 30s'
+
+  prometheus:
+    image: prom/prometheus:v2.4.3
+    user: root
+    entrypoint: ["/bin/prometheus"]
+    command:
+     - "--config.file=/prometheus.yml"
+     - "--storage.tsdb.path=/data"
+    volumes:
+     - ./prometheus.yml:/prometheus.yml
+    ports:
+    - 9090:9090
+    tmpfs:
+    - /data
+
+  grafana:
+    image: grafana/grafana:5.3.2
+    volumes:
+    - grafana-data:/var/lib/grafana
+    environment:
+    - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASS}
+    ports:
+    - 3000:3000
+ 
